@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { stockAPI } from '../../../src/api/stockAPI.js'
-import usePersistentDraft from '../../../src/hooks/usePersistentDraft.js'
+import { stockAPI } from '../api/stockAPI.js'
+import usePersistentDraft from '../hooks/usePersistentDraft.js'
 
 const ADD_STOCK_STORAGE_KEY = 'stock_add_modal_draft_v1'
 const ADD_STOCK_INITIAL_STATE = {
@@ -41,6 +41,7 @@ const AddStockPage = ({ setStatus }) => {
   const [macroSectorOptions, setMacroSectorOptions] = useState([])
   const [knownSectorOptions, setKnownSectorOptions] = useState([])
   const [basicIndustryOptions, setBasicIndustryOptions] = useState([])
+  const [showBasicIndustrySuggestions, setShowBasicIndustrySuggestions] = useState(false)
   const [equityTypeOptions, setEquityTypeOptions] = useState(['stock', 'etf', 'other'])
   const [stockMasterCache, setStockMasterCache] = useState([])
   const [stockSymbolsCache, setStockSymbolsCache] = useState(null)
@@ -111,16 +112,45 @@ const AddStockPage = ({ setStatus }) => {
     return mapping[s] || s
   }, [])
 
-  const fetchStockNames = useCallback(async () => {
-    try {
-      const { data } = await stockAPI.fetchStockMaster()
-      if (data) {
-        setStockMasterCache(data)
-      }
-    } catch (error) {
-      console.error('Error fetching stock master:', error)
+  const basicIndustrySuggestions = useMemo(() => {
+    if (!basicIndustryOptions || basicIndustryOptions.length === 0) return []
+    const query = String(basic_industry || '').trim().toLowerCase()
+    if (!query) return basicIndustryOptions.slice(0, 10)
+    return basicIndustryOptions
+      .filter((value) => String(value).toLowerCase().includes(query))
+      .slice(0, 10)
+  }, [basicIndustryOptions, basic_industry])
+
+const fetchStockNames = useCallback(async () => {
+  try {
+    const { data } = await stockAPI.fetchStockMasterFull()
+
+    if (data) {
+      setStockMasterCache(data)
+
+      const uniqueIndustries = Array.from(
+        new Set(
+          data
+            .map((item) => item.basic_industry)
+            .filter(
+              (value) =>
+                value !== undefined &&
+                value !== null &&
+                String(value).trim() !== ''
+            )
+            .map((value) => String(value).trim())
+        )
+      ).sort((a, b) => a.localeCompare(b))
+
+      setBasicIndustryOptions(uniqueIndustries)
     }
-  }, [])
+  } catch (error) {
+    console.error('Error fetching stock master:', error)
+  }
+}, [])
+
+useEffect(() => {
+}, [basicIndustryOptions])
 
   useEffect(() => {
     fetchStockNames()
@@ -203,16 +233,44 @@ const AddStockPage = ({ setStatus }) => {
   }, [])
 
   useEffect(() => {
+    const populateBasicIndustries = () => {
+      const fallbackIndustries = Array.from(
+        new Set(
+          stockMasterCache
+            .map((item) => item.basic_industry)
+            .filter((value) => value !== undefined && value !== null && String(value).trim() !== '')
+            .map((value) => String(value).trim())
+        )
+      ).sort((a, b) => a.localeCompare(b))
+
+      if (fallbackIndustries.length > 0) {
+        setBasicIndustryOptions((prev) => {
+          const merged = Array.from(new Set([...(Array.isArray(prev) ? prev : []), ...fallbackIndustries]))
+          merged.sort((a, b) => a.localeCompare(b))
+          return merged
+        })
+      }
+    }
+
     const fetchBasicIndustries = async () => {
       try {
         const { data } = await stockAPI.fetchDistinctValues('basic_industry')
-        if (data) setBasicIndustryOptions(data)
+        if (Array.isArray(data) && data.length) {
+          const normalized = Array.from(new Set(data.map((value) => String(value).trim()).filter(Boolean)))
+          normalized.sort((a, b) => a.localeCompare(b))
+          setBasicIndustryOptions(normalized)
+          return
+        }
       } catch (error) {
         console.error('Error fetching basic industries:', error)
       }
+
+      populateBasicIndustries()
     }
+
     fetchBasicIndustries()
-  }, [])
+    populateBasicIndustries()
+  }, [stockMasterCache])
 
   const ensureStockSymbols = useCallback(async () => {
     if (stockSymbolsCache) return stockSymbolsCache
@@ -252,6 +310,31 @@ const AddStockPage = ({ setStatus }) => {
     if (!match) return null
     return match.symbol_token || match.token || match.symbol || match.symbol_ao || match.symbol_gs || match.id || null
   }, [])
+
+useEffect(() => {
+  const loadSymbolToken = async () => {
+    if (!stock_name || !exchange) return
+
+    try {
+      console.log('Fetching token for:', stock_name, exchange)
+
+      const result = await stockAPI.fetchSymbolToken(
+        stock_name,
+        exchange
+      )
+
+      console.log('Symbol Token API Response:', result)
+
+      if (result?.symbol_token) {
+        setSymbolToken(result.symbol_token)
+      }
+    } catch (error) {
+      console.error('Failed to fetch symbol token:', error)
+    }
+  }
+
+  loadSymbolToken()
+}, [stock_name, exchange])
 
   useEffect(() => {
     if (symbolFetchRef.current) clearTimeout(symbolFetchRef.current)
@@ -435,21 +518,62 @@ const AddStockPage = ({ setStatus }) => {
             />
           </div>
 
-          <div>
+          <div style={{ position: 'relative' }}>
             <label className="label" htmlFor="basicIndustry">Basic Industry</label>
             <input
               id="basicIndustry"
               list="basicIndustryOptions"
               placeholder="Basic Industry"
               value={basic_industry}
-              onChange={(e) => setBasicIndustry(e.target.value)}
+              onChange={(e) => {
+                setBasicIndustry(e.target.value)
+                setShowBasicIndustrySuggestions(true)
+              }}
+              onFocus={() => setShowBasicIndustrySuggestions(true)}
+              onBlur={() => setTimeout(() => setShowBasicIndustrySuggestions(false), 150)}
               className="input"
+              autoComplete="off"
             />
-            <datalist id="basicIndustryOptions">
-              {basicIndustryOptions.map((s, idx) => (
-                <option key={idx} value={s} />
-              ))}
-            </datalist>
+            {showBasicIndustrySuggestions && basicIndustrySuggestions.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 10,
+                  maxHeight: 210,
+                  overflowY: 'auto',
+                  backgroundColor: '#0f172a',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  borderRadius: 12,
+                  boxShadow: '0 12px 30px rgba(15, 23, 42, 0.15)',
+                }}
+              >
+                {basicIndustrySuggestions.map((option, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setBasicIndustry(option)
+                      setShowBasicIndustrySuggestions(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 14px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#fff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

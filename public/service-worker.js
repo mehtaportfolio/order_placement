@@ -40,10 +40,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Navigation requests should fallback to index.html for SPA routes
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) return res
+          return caches.match('/index.html')
+        })
+        .catch(() => caches.match('/index.html'))
+    )
+    return
+  }
+
   // Assets cache-first
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request).then((res) => {
-      // Optionally cache new assets
       if (request.url.startsWith(self.location.origin)) {
         const copy = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
