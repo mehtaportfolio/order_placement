@@ -33,9 +33,34 @@ function SingleOrderComponent({ backendBase = '', setStatus }, ref) {
   const [quantity, setQuantity] = useState('')
   const [orderType, setOrderType] = useState('LIMIT')
   const [price, setPrice] = useState('')
+  const [livePrice, setLivePrice] = useState(null)
   const [statusLocal, setStatusLocal] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showBuyConfirm, setShowBuyConfirm] = useState(false)
+  const [showStockSuggestions, setShowStockSuggestions] = useState(false)
+  const stockInputRef = useRef(null)
+
+useEffect(() => {
+  if (!stock) return
+
+  const interval = setInterval(async () => {
+    try {
+      const response = await fetch(
+        `${backendBase}/api/orders/live-price/${encodeURIComponent(stock)}-EQ`
+      )
+
+      const data = await response.json()
+
+      if (data.ltp != null) {
+        setLivePrice(data.ltp)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }, 2000)
+
+  return () => clearInterval(interval)
+}, [stock, backendBase])
 
   useEffect(() => {
     loadStockMaster()
@@ -54,6 +79,30 @@ function SingleOrderComponent({ backendBase = '', setStatus }, ref) {
       setStatus({ type: 'error', message: err.message || 'Failed to load stock list' })
     }
   }
+
+const fetchLivePrice = async (symbol) => {
+  if (!symbol?.trim()) {
+    setLivePrice(null)
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `${backendBase}/api/orders/live-price/${encodeURIComponent(symbol.trim())}-EQ`
+    )
+
+    const data = await response.json()
+
+    if (response.ok) {
+      setLivePrice(data.ltp)
+    } else {
+      setLivePrice(null)
+    }
+  } catch (error) {
+    console.error('Failed to fetch live price:', error)
+    setLivePrice(null)
+  }
+}
 
   const validateForm = () => {
     if (!stock.trim()) return 'Stock is required.'
@@ -140,21 +189,76 @@ function SingleOrderComponent({ backendBase = '', setStatus }, ref) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div className="dropdown" style={{ flex: 1 }}>
               <input
+                ref={stockInputRef}
                 id="stock"
                 className="input"
                 value={stock}
-                onChange={(e) => setStock(e.target.value)}
+onChange={(e) => {
+  const value = e.target.value
+
+  setStock(value)
+  setShowStockSuggestions(Boolean(value.trim()))
+
+  if (!value.trim()) {
+    setLivePrice(null)
+  }
+}}
+                onFocus={() => {
+                  if (stock.trim()) setShowStockSuggestions(true)
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowStockSuggestions(false), 150)
+                }}
                 placeholder="Type stock name..."
                 autoComplete="off"
               />
-              {stockSuggestions.length > 0 && (
+              {stockSuggestions.length > 0 && showStockSuggestions && (
                 <div className="suggestions">
                   {stockSuggestions.map((item, index) => (
                     <button
                       key={`${item.name}-${index}`}
                       type="button"
                       className="suggestion"
-                      onClick={() => setStock(item.name)}
+onMouseDown={async () => {
+  setStock(item.name)
+  setShowStockSuggestions(false)
+
+  setLivePrice(null)
+
+  const symbol = `${item.name}-EQ`
+
+  const fetchPrice = async () => {
+    try {
+      const response = await fetch(
+        `${backendBase}/api/orders/live-price/${encodeURIComponent(symbol)}`
+      )
+
+      const data = await response.json()
+
+      console.log('LTP Response:', data)
+
+      if (data.ltp != null) {
+        setLivePrice(data.ltp)
+        return true
+      }
+
+      return false
+    } catch (err) {
+      console.error(err)
+      return false
+    }
+  }
+
+  // Try immediately
+  let found = await fetchPrice()
+
+  // If subscription still warming up, retry
+  if (!found) {
+    setTimeout(async () => {
+      await fetchPrice()
+    }, 2000)
+  }
+}}
                     >
                       {item.name}
                     </button>
@@ -181,9 +285,55 @@ function SingleOrderComponent({ backendBase = '', setStatus }, ref) {
             >
               +
             </button>
+            {stock.trim() && (
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `https://www.tradingview.com/chart/?symbol=NSE:${encodeURIComponent(
+                      stock.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+                    )}`,
+                    '_blank',
+                    'noopener'
+                  )
+                }
+                style={{
+                  border: '1px solid rgba(148, 163, 184, 0.35)',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  color: '#ffffff',
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+                aria-label="Open TradingView chart"
+                title="Open TradingView chart"
+              >
+                📈
+              </button>
+            )}
+
+{stock && (
+  <div
+    style={{
+      marginTop: 8,
+      padding: '8px 12px',
+      borderRadius: 8,
+      background: '#D97706',
+      fontWeight: 600
+    }}
+  >
+    LTP: ₹{livePrice ?? '--'}
+  </div>
+)}
           </div>
         </div>
       </div>
+
+
 
       <div className="row grid-2">
         <div>

@@ -5,12 +5,57 @@ import { useStockSearch } from '../hooks/useStockSearch'
 
 function MultiOrderTable({ orders, onUpdate, onDelete, onDuplicate, backendBase = '' }) {
   const [editingOrder, setEditingOrder] = useState(null)
+const [ltpMap, setLtpMap] = useState({})
   const { suggestions, searchTerm, setSearchTerm, loadStockMaster } = useStockSearch(backendBase)
 
   useEffect(() => {
     // load stock master once so suggestions are available in modal
     loadStockMaster()
   }, [loadStockMaster])
+
+useEffect(() => {
+  if (!orders.length) return
+
+  const fetchLTPs = async () => {
+    const updates = {}
+
+    for (const order of orders) {
+      try {
+        if (!order.stock) continue
+
+        const response = await fetch(
+          `${backendBase}/api/orders/live-price/${encodeURIComponent(order.stock)}-EQ`
+        )
+
+        const data = await response.json()
+
+        if (data.ltp != null) {
+          updates[order.stock] = data.ltp
+        }
+      } catch (err) {
+        console.error(
+          `Failed to fetch LTP for ${order.stock}`,
+          err
+        )
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setLtpMap(prev => ({
+        ...prev,
+        ...updates
+      }))
+    }
+  }
+
+  fetchLTPs()
+
+  const interval = setInterval(fetchLTPs, 2000)
+
+  return () => clearInterval(interval)
+}, [orders, backendBase])
+
+
 
   const openEditModal = (order) => {
     setEditingOrder({ ...order })
@@ -76,6 +121,7 @@ function MultiOrderTable({ orders, onUpdate, onDelete, onDuplicate, backendBase 
                 <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#cbd5e1' }}>Qty</th>
                 <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#cbd5e1' }}>Type</th>
                 <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#cbd5e1' }}>Price</th>
+                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#cbd5e1' }}>LTP</th>
                 <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#cbd5e1' }}>Actions</th>
               </tr>
             </thead>
@@ -94,6 +140,8 @@ function MultiOrderTable({ orders, onUpdate, onDelete, onDuplicate, backendBase 
                   <td style={{ padding: '10px' }}>{order.quantity}</td>
                   <td style={{ padding: '10px' }}>{order.orderType}</td>
                   <td style={{ padding: '10px' }}>{order.orderType === 'LIMIT' ? order.price : '-'}</td>
+		  <td style={{ padding: '10px', fontWeight: '600', color: '#10b981' }}>
+                   {ltpMap[order.stock] ? `₹${ltpMap[order.stock].toFixed(2)}` : '--'} </td>
                   <td
                     style={{
                       padding: '10px',

@@ -90,7 +90,7 @@ function MultiOrderTab({ backendBase = '', setStatus }) {
   }
 
   // Add order to table
-  const handleAddOrder = () => {
+  const handleAddOrder = async () => {
     const error = validateForm()
     if (error) {
       setStatusLocal({ type: 'error', message: error })
@@ -106,8 +106,26 @@ function MultiOrderTab({ backendBase = '', setStatus }) {
       price: orderType === 'LIMIT' ? Number(price) : null,
     }
 
-    addOrder(newOrder)
-    setStatusLocal({ type: 'success', message: 'Order added to table' })
+addOrder(newOrder)
+
+try {
+  await fetch(`${backendBase}/api/orders/subscribe-stock`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      symbol: stock.trim()
+    })
+  })
+} catch (err) {
+  console.error('Subscribe failed:', err)
+}
+
+setStatusLocal({
+  type: 'success',
+  message: 'Order added to table'
+})
 
     // Reset form for next order
     setStock('')
