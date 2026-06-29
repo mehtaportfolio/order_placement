@@ -243,13 +243,20 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
             type="button"
             className="save-button"
             onClick={async () => {
-              setStatus && setStatus({ type: 'loading', message: 'Syncing open positions from brokers...' });
+              setStatus && setStatus({ type: 'loading', message: 'Syncing and saving open positions...' });
               try {
                 const res = await fetch(`${backendBase}/api/buy-order/sync-positions`, { method: 'POST' });
                 const data = await res.json();
                 if (res.ok) {
                   const summary = data.summary?.map((item) => `${item.broker}:${item.account} ${item.success ? 'OK' : 'FAIL'} (${item.inserted || 0} ins, ${item.updated || 0} upd)`).join('; ');
-                  setStatus && setStatus({ type: 'success', message: `Sync complete. ${summary}` });
+                  const inserted = data.save?.inserted ?? data.inserted ?? 0;
+                  const duplicates = data.save?.duplicates ?? data.duplicates ?? 0;
+                  const saveMessage = inserted > 0
+                    ? `Saved ${inserted} transaction${inserted === 1 ? '' : 's'}`
+                    : duplicates > 0
+                      ? `All ${duplicates} position${duplicates === 1 ? '' : 's'} were already present`
+                      : 'No new transactions were created';
+                  setStatus && setStatus({ type: 'success', message: `${data.message || 'Sync complete.'} ${summary ? `| ${summary}` : ''} | ${saveMessage}` });
                   loadPositionsFull();
                 } else {
                   setStatus && setStatus({ type: 'error', message: data.error || 'Sync failed' });
@@ -259,7 +266,7 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
               }
             }}
           >
-            Sync
+            Sync & Save
           </button>
           <button type="button" className="refresh-button" onClick={loadPositionsFull} disabled={loadingPositions}>
             {loadingPositions ? 'Refreshing…' : 'Refresh'}
