@@ -307,7 +307,7 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
       </div>
 
       <div className="table-container">
-        <table>
+        <table className="positions-table">
           <thead>
             <tr>
               {positionBroker === '' && <th>Broker</th>}
@@ -348,7 +348,7 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
                     <td>{formatCurrency(pos.ltp)}</td>
                     <td className={pnlClass}>{formatCurrency(pos.pnl)}</td>
                     <td className={pnlClass}>{pos.pnl_percent}%</td>
-                    <td>
+                    <td className="actions-cell">
                       <button type="button" className="action-btn" onClick={() => prepareTradeForm('BUY', pos)}>Add</button>
                       <button
                         type="button"

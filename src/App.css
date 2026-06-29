@@ -276,6 +276,11 @@ table {
   }
 }
 
+.positions-table td,
+.positions-table th {
+  white-space: normal;
+}
+
 th {
   background: rgba(15, 23, 42, 0.5);
   color: #94a3b8;
@@ -332,11 +337,16 @@ tr:hover {
   cursor: pointer;
   font-size: 0.85rem;
   transition: all 0.18s ease;
+  white-space: nowrap;
 }
 
 .action-btn:hover {
   border-color: #38bdf8;
   background: rgba(56, 189, 248, 0.12);
+}
+
+.actions-cell {
+  white-space: nowrap;
 }
 
   .positions-header {
