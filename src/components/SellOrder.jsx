@@ -141,6 +141,11 @@ export default function SellOrder({ backendBase = '', setStatus, status }) {
     setShowSellModal(true)
   }
 
+  const handleConfirmSellOrder = async () => {
+    setShowSellConfirm(false)
+    await handlePlaceSellOrder()
+  }
+
   const handlePlaceSellOrder = async () => {
     const sellQty = parseInt(sellQuantity)
     if (!sellQty || sellQty <= 0) {
@@ -524,6 +529,16 @@ export default function SellOrder({ backendBase = '', setStatus, status }) {
               </div>
             </div>
           )}
+
+          <ConfirmationDialog
+            isOpen={showSellConfirm}
+            onConfirm={handleConfirmSellOrder}
+            onCancel={() => setShowSellConfirm(false)}
+            title="Confirm Sell Order"
+            confirmLabel="Place Sell Order"
+            cancelLabel="Cancel"
+            message={`You are about to sell ${sellQuantity || 0} unit${Number(sellQuantity) === 1 ? '' : 's'} of ${selectedSellStock?.stock_name || 'this stock'}${sellOrderType === 'LIMIT' ? ` at ₹${sellPrice}` : ' at market price'}.`}
+          />
         </>
       )}
 
