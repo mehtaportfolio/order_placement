@@ -266,7 +266,7 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
               }
             }}
           >
-            Sync & Save
+            Sync
           </button>
           <button type="button" className="refresh-button" onClick={loadPositionsFull} disabled={loadingPositions}>
             {loadingPositions ? 'Refreshing…' : 'Refresh'}
@@ -356,15 +356,24 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
                     <td className={pnlClass}>{formatCurrency(pos.pnl)}</td>
                     <td className={pnlClass}>{pos.pnl_percent}%</td>
                     <td className="actions-cell">
-                      <button type="button" className="action-btn" onClick={() => prepareTradeForm('BUY', pos)}>Add</button>
+                      <button
+                        type="button"
+                        className="action-btn"
+                        onClick={() => prepareTradeForm('BUY', pos)}
+                        title="Add"
+                        aria-label={`Add ${pos.stock_name || pos.symbol || 'position'}`}
+                      >
+                        ➕
+                      </button>
                       <button
                         type="button"
                         className="action-btn"
                         onClick={() => prepareTradeForm('SELL', pos)}
-                        style={{ marginLeft: 8 }}
+                        title="Sell"
+                        aria-label={`Sell ${pos.stock_name || pos.symbol || 'position'}`}
                         disabled={sellingPositionId === (pos.id || `${normalizeBroker(pos.broker)}-${pos.account || pos.account_id || ''}-${pos.symbol || pos.stock_name || ''}`)}
                       >
-                        {sellingPositionId === (pos.id || `${normalizeBroker(pos.broker)}-${pos.account || pos.account_id || ''}-${pos.symbol || pos.stock_name || ''}`) ? 'Selling…' : 'Sell'}
+                        {sellingPositionId === (pos.id || `${normalizeBroker(pos.broker)}-${pos.account || pos.account_id || ''}-${pos.symbol || pos.stock_name || ''}`) ? '…' : '⤴'}
                       </button>
                     </td>
                   </tr>

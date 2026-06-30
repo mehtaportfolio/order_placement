@@ -278,7 +278,7 @@ table {
 
 .positions-table td,
 .positions-table th {
-  white-space: normal;
+  white-space: nowrap;
 }
 
 th {
@@ -332,10 +332,15 @@ tr:hover {
   background: none;
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: #38bdf8;
-  padding: 6px 10px;
+  padding: 6px 8px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.18s ease;
   white-space: nowrap;
 }
@@ -347,6 +352,9 @@ tr:hover {
 
 .actions-cell {
   white-space: nowrap;
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
   .positions-header {
