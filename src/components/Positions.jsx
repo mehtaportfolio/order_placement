@@ -140,7 +140,7 @@ export default function Positions({ backendBase = '', onPrepareTrade, setStatus,
     const account_id = pos.account || pos.account_id || ''
     const symbol = pos.symbol || pos.stock_name || ''
     const quantity = Number(pos.quantity || 0)
-    const transaction_id = pos.id || null
+    const transaction_id = pos.transaction_id || pos.id || null
 
     if (!broker || !account_id || !symbol || !quantity) {
       setStatus && setStatus({ type: 'error', message: 'Invalid position data for sell order.' })
