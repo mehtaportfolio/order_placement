@@ -95,6 +95,31 @@ select {
   padding: 18px;
 }
 
+.stock-details-transactions-label-short {
+  display: none;
+}
+
+.stock-details-summary-table th,
+.stock-details-summary-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: left;
+}
+
+.stock-details-summary-table th {
+  width: 58%;
+  background: transparent;
+  color: #f8fafc;
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.stock-details-summary-table td {
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
 @media (min-width: 768px) {
   .card {
     border-radius: 28px;
@@ -416,6 +441,76 @@ table {
 
 /* Reduce gaps and cell padding on small/mobile screens for denser layout */
 @media (max-width: 640px) {
+  .stock-details-page {
+    padding: 14px;
+  }
+
+  .stock-details-header h1 {
+    font-size: 1.45rem;
+  }
+
+  .stock-details-search-row {
+    width: 100%;
+    max-width: none !important;
+    align-items: center !important;
+    flex-direction: row;
+  }
+
+  .stock-details-search-field {
+    width: 100%;
+  }
+
+  .stock-details-transactions-button {
+    width: auto !important;
+    padding: 10px 12px !important;
+    font-size: 0.85rem;
+  }
+
+  .stock-details-transactions-label-full {
+    display: none;
+  }
+
+  .stock-details-transactions-label-short {
+    display: inline;
+  }
+
+  .stock-details-mode-actions {
+    width: 100%;
+    max-width: none !important;
+    flex-wrap: nowrap;
+    gap: 6px !important;
+  }
+
+  .stock-details-mode-actions .button {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 10px 6px;
+    font-size: 0.82rem;
+  }
+
+  .stock-details-summary,
+  .stock-details-master-summary {
+    width: 100%;
+    max-width: none !important;
+    gap: 10px !important;
+  }
+
+  .stock-details-transactions-scroll {
+    width: calc(100vw - 28px);
+    max-width: 100%;
+  }
+
+  .stock-details-transactions-table {
+    min-width: 760px !important;
+    font-size: 0.8rem;
+  }
+
+  .stock-details-transactions-table th,
+  .stock-details-transactions-table td {
+    padding: 8px 6px;
+  }
+
   .card .row.grid-2 {
     gap: 6px;
   }
